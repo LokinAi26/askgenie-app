@@ -508,64 +508,6 @@ a.btn.primary{color:#2a1706}
 <div id="toast" role="status" hidden></div>
 
 <script>
-/* GENIE live bridge (deploy-injected): maps the Claude artifact runtime API used
-   by this file onto the real backend at /api/ask. Everything below this block is
-   Kendall's original artifact file, byte-identical. */
-(function(){
-'use strict';
-var prevClaude=(typeof window!=="undefined")?window.claude:null;
-var prevUse=(prevClaude&&prevClaude.use)?prevClaude.use:null;
-function blobToBase64(blob){
-  return new Promise(function(resolve,reject){
-    try{
-      var fr=new FileReader();
-      fr.onerror=function(){reject(new Error("read_failed"))};
-      fr.onload=function(){var s=String(fr.result||"");var i=s.indexOf("base64,");resolve(i>=0?s.slice(i+7):s)};
-      fr.readAsDataURL(blob);
-    }catch(e){reject(e)}
-  });
-}
-async function sample(input,opts){
-  opts=opts||{};
-  var payload={};
-  if(typeof input==="string")payload.prompt=input;
-  else if(Array.isArray(input))payload.messages=input;
-  else payload.prompt=String(input==null?"":input);
-  if(opts.images&&typeof opts.images.arrayBuffer==="function"){
-    payload.imageBase64=await blobToBase64(opts.images);
-    if(opts.images.type)payload.imageMediaType=opts.images.type;
-  }
-  var res;
-  try{
-    res=await fetch("/api/ask",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal:opts.signal||undefined});
-  }catch(err){
-    if(err&&(err.name==="AbortError"||err.code===20)){err.code="cancelled"}
-    else if(err&&!err.code){err.code="server_error"}
-    throw err;
-  }
-  var data=null;try{data=await res.json()}catch(e){data=null}
-  if(!res.ok){
-    var e=new Error("ask failed: "+res.status);
-    e.code=(res.status===429)?"rate_limited":"server_error";
-    if(data&&data.error)e.text=data.error;else if(res.statusText)e.text=res.statusText;
-    throw e;
-  }
-  var text=(data&&typeof data.answer==="string")?data.answer:"";
-  try{if(opts.onText)opts.onText({text:text})}catch(e){}
-  return{text:text};
-}
-sample.limits=async function(){return{images:true}};
-async function use(name){
-  if(name==="sample")return sample;
-  if(name==="db"||name==="mcp")return null;
-  if(prevUse){try{return await prevUse.call(prevClaude,name)}catch(e){return null}}
-  return null;
-}
-window.claude={use:use};
-})();
-</script>
-
-<script>
 (function(){
 'use strict';
 var $=function(s,r){return (r||document).querySelector(s)};

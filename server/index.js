@@ -23,13 +23,66 @@ function loadDb() {
 }
 function saveDb(db) { writeFileSync(DB_PATH, JSON.stringify(db, null, 2)); }
 
-// POST /api/ask  { question, notebook?, imageBase64? } -> { answer, notebookUsed }
+// POST /api/ask
+// Accepts three shapes:
+//   { question, notebook?, imageBase64? }   — original voice UI (unchanged behavior)
+//   { messages: [{role, content}] }         — Claude artifact bridge (Kendall's real UI)
+//   { prompt: "..." }                       — single-prompt shorthand
+// All -> { answer, notebookUsed }
 app.post("/api/ask", async (req, res) => {
-  const { question, notebook, imageBase64 } = req.body ?? {};
-  if (!question && !imageBase64) return res.status(400).json({ error: "empty" });
+  const { question, notebook, imageBase64, imageMediaType, messages, prompt } = req.body ?? {};
+  if (!question && !imageBase64 && !messages && !prompt) return res.status(400).json({ error: "empty" });
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return res.status(500).json({ error: "server missing ANTHROPIC_API_KEY" });
+
+  // --- artifact bridge: {messages} or {prompt} ---
+  if (messages || prompt) {
+    const sysText =
+      "You are GENIE, Kendall's voice-first AI assistant. Keep answers short, plain, and speakable — no markdown unless asked.";
+    let msgs;
+    if (Array.isArray(messages)) {
+      msgs = [];
+      for (const m of messages) {
+        const role = m && m.role === "assistant" ? "assistant" : "user";
+        const text = typeof m?.content === "string" ? m.content : JSON.stringify(m?.content ?? "");
+        const last = msgs[msgs.length - 1];
+        if (last && last.role === role) last.content += "\n\n" + text;
+        else msgs.push({ role, content: text });
+      }
+      if (!msgs.length) return res.status(400).json({ error: "empty" });
+    } else {
+      msgs = [{ role: "user", content: String(prompt) }];
+    }
+    if (imageBase64) {
+      const last = msgs[msgs.length - 1];
+      const prior = typeof last.content === "string" ? last.content : "";
+      last.content = [
+        { type: "image", source: { type: "base64", media_type: imageMediaType || "image/jpeg", data: imageBase64 } },
+        { type: "text", text: prior },
+      ];
+    }
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: process.env.GENIE_MODEL || "claude-haiku-4-5-20251001",
+        max_tokens: 600,
+        system: sysText,
+        messages: msgs,
+      }),
+    });
+    if (!r.ok) return res.status(502).json({ error: `anthropic ${r.status}` });
+    const data = await r.json();
+    const answer = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+    return res.json({ answer, notebookUsed: null });
+  }
+
+  // --- original {question} path — behavior untouched ---
 
   // Vault context: only the selected notebook, named in the answer.
   let vaultContext = "";
