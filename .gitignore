@@ -1,0 +1,5 @@
+node_modules/
+web/dist/
+server/genie-db.json
+.env
+.DS_Store
