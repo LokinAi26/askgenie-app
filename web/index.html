@@ -492,7 +492,7 @@ a.btn.primary{color:#2a1706}
       <h3>Android setup (Samsung / Pixel)</h3>
       <div class="todo" data-list="android"></div>
     </div>
-    <p class="status">Phones keep their own wake phrases ("Hey Google", "Hey Siri"). These steps set up the native apps from the blueprint. "Hey GENIE" works inside this page.</p>
+    <p class="status">Phones keep their own wake phrases ("Hey Google", "Hey Siri"). These steps set up the native apps from the blueprint. "Hey GENIE" works inside this page.</p>      <details class="card"><summary><b>Genie diagnostics</b> <span class="sub">live video / webgl / audio state — open if the drawn genie appears instead of the video one</span></summary><pre id="geniediag" style="white-space:pre-wrap;font-size:12px;font-family:var(--mono)">loading…</pre></details>
   </section>
 </div>
 
@@ -971,8 +971,9 @@ var stage=$("#lampstage"),cv=$("#fx"),cx=cv.getContext("2d"),lamp=$("#lamp"),hin
 var W=0,H=0,dpr=1,parts=[],stars=[],heat=0,energy=0,rubbing=false,lastPt=null,genieT=-1,lastTs=0,burstDone=false,hintTxt="";
 var PAL=[[322,100,60],[188,100,58],[266,95,68],[42,100,62],[300,90,64]];
 var NEED=650;
-var vid=$("#genievid"),vidBad=false,useVid=false,primed=false,pendingVid=false;
-vid.addEventListener("error",function(){vidBad=true});
+var vid=$("#genievid"),vidBad=false,useVid=false,primed=false,pendingVid=false,lastPlayErr="";
+vid.addEventListener("error",function(){vidBad=true;primed=false;setTimeout(function(){try{vid.load()}catch(e){}},4000)});
+vid.addEventListener("canplay",function(){vidBad=false});
 try{vid.load()}catch(e){}
 function primeVid(){
   if(primed||vidBad||RM)return; primed=true;
@@ -1148,6 +1149,8 @@ var GV=(function(){
   };
 })();
 if(!GV)vidBad=true;
+window.GENIE_DIAG=function(){var v=$("#genievid");return "video: readyState="+v.readyState+" networkState="+v.networkState+" paused="+v.paused+" vidBad="+vidBad+" primed="+primed+" pendingVid="+pendingVid+"\nwebgl: "+(GV?"ok":"MISSING")+" | reducedMotion:"+RM+"\nlast summon: useVid="+useVid+" genieT="+(genieT>=0?genieT.toFixed(1):"idle")+" lastPlayErr="+(lastPlayErr||"none")+"\naudio: "+((typeof actx!=="undefined"&&actx)?actx.state:"no-context")};
+setInterval(function(){var el=document.getElementById("geniediag");if(el&&window.GENIE_DIAG)try{el.textContent=window.GENIE_DIAG()}catch(e){}},2000);
 
 function fit(){
   var r=stage.getBoundingClientRect(); if(!r.width)return;
@@ -1290,8 +1293,8 @@ function summon(){
   useVid=!vidBad&&!RM&&!!GV;
   var synthFn=function(){try{whoosh();chime()}catch(e){}};
   try{vid.muted=false;vid.currentTime=0;var pr=vid.play();
-    if(pr&&pr.then)pr.then(null,function(){try{vid.muted=true;vid.currentTime=0;var p2=vid.play();if(p2&&p2.then)p2.then(null,function(){useVid=false;pendingVid=true})}catch(e){useVid=false;pendingVid=true}synthFn()});
-  }catch(e){useVid=false;synthFn()}
+    if(pr&&pr.then)pr.then(null,function(e){lastPlayErr=(e&&e.name)||"rejected";try{vid.muted=true;vid.currentTime=0;var p2=vid.play();if(p2&&p2.then)p2.then(null,function(e2){lastPlayErr="muted:"+((e2&&e2.name)||"rejected");useVid=false;pendingVid=true})}catch(e){useVid=false;pendingVid=true}synthFn()});
+  }catch(e){lastPlayErr="threw";useVid=false;synthFn()}
   if(!RM&&W){var sp=spout();emit(sp.x,sp.y,60,2.2,true)}
   if(SR&&!want)startWake();
   if(want){wakeUI("awake");awakeUntil=Date.now()+20000}else wakeUI("typed");
