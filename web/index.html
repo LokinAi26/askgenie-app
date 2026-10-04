@@ -1233,8 +1233,8 @@ function chime(){
 var auOK=false,rubN=null,keepAlive=null;
 function ctxGet(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state!=="running")actx.resume();return actx}catch(e){return null}}
 function unlockAudio(){
+  var c=null;try{c=ctxGet()}catch(e){}
   if(auOK)return;auOK=true;
-  var c=ctxGet();
   try{if(c){var b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0)}}catch(e){}
   /* a silent looping <audio> moves iOS to the playback channel so the ring/silent switch does not mute us */
   try{
@@ -1289,7 +1289,7 @@ function whoosh(){
 function shimmer(){if(RM||!W)return;var sp=spout();emit(sp.x,sp.y,18,1.6,true)}
 function summon(){
   if(genieT>=0){shimmer();return}
-  genieT=0;energy=0;burstDone=false;rubStop();
+  genieT=0;energy=0;burstDone=false;rubStop();try{ctxGet()}catch(e){}
   useVid=!vidBad&&!RM&&!!GV;
   var synthFn=function(){try{whoosh();chime()}catch(e){}};
   try{vid.muted=false;vid.currentTime=0;var pr=vid.play();
@@ -1342,7 +1342,7 @@ lamp.addEventListener("pointermove",function(e){
   if(energy>=NEED)summon();
 });
 function stopRub(){rubbing=false;lastPt=null;rubStop()}
-lamp.addEventListener("pointerup",function(){primeVid();if(pendingVid&&genieT>=0)resumeVid();stopRub()});
+lamp.addEventListener("pointerup",function(){try{unlockAudio()}catch(e){}primeVid();if(pendingVid&&genieT>=0)resumeVid();stopRub()});
 lamp.addEventListener("touchend",function(){primeVid();if(pendingVid&&genieT>=0)resumeVid()},{passive:true});lamp.addEventListener("pointercancel",stopRub);
 lamp.addEventListener("click",function(e){
   primeVid();if(pendingVid&&genieT>=0)resumeVid();
