@@ -1288,7 +1288,10 @@ function summon(){
   if(genieT>=0){shimmer();return}
   genieT=0;energy=0;burstDone=false;rubStop();
   useVid=!vidBad&&!RM&&!!GV;
-  try{vid.muted=false;vid.currentTime=0;var pr=vid.play();if(pr&&pr.catch)pr.catch(function(){if(useVid){useVid=false;pendingVid=true;vid.style.opacity=0}})}catch(e){if(useVid)useVid=false}
+  var synthFn=function(){try{whoosh();chime()}catch(e){}};
+  try{vid.muted=false;vid.currentTime=0;var pr=vid.play();
+    if(pr&&pr.then)pr.then(null,function(){try{vid.muted=true;vid.currentTime=0;var p2=vid.play();if(p2&&p2.then)p2.then(null,function(){useVid=false;pendingVid=true})}catch(e){useVid=false;pendingVid=true}synthFn()});
+  }catch(e){useVid=false;synthFn()}
   if(!RM&&W){var sp=spout();emit(sp.x,sp.y,60,2.2,true)}
   if(SR&&!want)startWake();
   if(want){wakeUI("awake");awakeUntil=Date.now()+20000}else wakeUI("typed");
