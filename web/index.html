@@ -1117,7 +1117,7 @@ var GV=(function(){
     gl=c.getContext("webgl",{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false});
     if(!gl)return null;
     var vs="attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}";
-    var fs="precision mediump float;varying vec2 uv;uniform sampler2D tx;uniform float fade;void main(){vec3 v=texture2D(tx,uv).rgb;float l=dot(v,vec3(.3,.5,.2));float a=smoothstep(.035,.15,l);float e=smoothstep(0.,.07,uv.x)*smoothstep(1.,.93,uv.x)*smoothstep(0.,.04,uv.y);float b=smoothstep(1.,.74,uv.y);a*=e*b*fade;gl_FragColor=vec4(v*1.1*a,a);}";
+    var fs="precision mediump float;varying vec2 uv;uniform sampler2D tx;uniform float fade;void main(){vec3 v=texture2D(tx,uv).rgb;float l=dot(v,vec3(.3,.5,.2));float a=smoothstep(.02,.09,l);float e=smoothstep(0.,.07,uv.x)*smoothstep(1.,.93,uv.x)*smoothstep(0.,.04,uv.y);float b=smoothstep(1.,.74,uv.y);a*=e*b*fade;gl_FragColor=vec4(v*1.1*a,a);}";
     var sh=function(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error("sh");return o};
     var pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.bindAttribLocation(pr,0,"p");gl.linkProgram(pr);
     if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error("link");
@@ -1190,7 +1190,7 @@ function geniePose(){var sp=spout();return{sp:sp,s:H/430,ax:sp.x+W*.2,ay:H*.27}}
 function tailPts(g){return[{x:g.ax,y:g.ay+118*g.s},{x:g.ax-16*g.s,y:g.ay+215*g.s},{x:g.sp.x+W*.1,y:g.sp.y-H*.2},g.sp]}
 function drawGenie(t,a){
   var g=geniePose(),s=g.s,ax=g.ax+(RM?0:Math.sin(t*1.6)*5*s),ay=g.ay+(RM?0:Math.sin(t*2.1)*4*s),wave=RM?0:Math.sin(t*3.4)*7*s;
-  cx.save();cx.globalAlpha=a;cx.globalCompositeOperation="lighter";
+  cx.save();cx.globalAlpha=a;cx.globalCompositeOperation="source-over";
   var body=cx.createLinearGradient(0,ay-20*s,0,ay+190*s);
   body.addColorStop(0,"hsla(188,100%,72%,.9)");body.addColorStop(.45,"hsla(266,95%,64%,.8)");body.addColorStop(1,"hsla(322,100%,58%,.25)");
   cx.shadowColor="rgba(110,190,255,.85)";cx.shadowBlur=26*s;
@@ -1302,7 +1302,7 @@ function frame(ts){
   requestAnimationFrame(frame);
   if(document.hidden||$("#p-talk").hidden||!W)return;
   var dt=Math.min(.05,(ts-lastTs)/1000||.016);lastTs=ts;
-  var endT=RM?4:(useVid?Math.max(6.5,(vid.duration||5)+1.5):11);
+  var endT=RM?4:(useVid?Math.max(14,(vid.duration||5)+8):20);
   if(!rubbing)energy=Math.max(0,energy-170*dt);
   heat=Math.min(1,energy/NEED);lamp.style.setProperty("--heat",heat.toFixed(2));
   var sp=spout();
@@ -1323,7 +1323,7 @@ function frame(ts){
     var ain=Math.max(0,Math.min(1,(genieT-.6)/1.6)),aout=genieT>endT-2?Math.max(0,Math.min(1,(endT-genieT)/2)):1;
     if(RM){ain=1;aout=genieT>endT-1?Math.max(0,endT-genieT):1}
     if(useVid)GV.layout(ain*aout,sp,genieT,Math.min(1,genieT/2.4));else if(ain*aout>0)drawGenie(genieT,ain*aout);
-    sayEl.hidden=!(genieT>1.6&&genieT<endT-1.5);
+    sayEl.hidden=!(genieT>1.6&&genieT<6);
     if(genieT>=endT){genieT=-1;sayEl.hidden=true;if(GV)GV.hide();vid.style.opacity=0;try{vid.pause()}catch(e){}}
     setHint("GENIE is awake. Make your wish below.");
   }else setHint(heat>.25?"Keep rubbing...":"Rub the lamp to wake GENIE");
