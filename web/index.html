@@ -1294,6 +1294,7 @@ function summon(){
   if(want){wakeUI("awake");awakeUntil=Date.now()+20000}else wakeUI("typed");
   var hello="Your wish is my command. What would you like?";
   addMsg("genie",hello,"action");say(hello);
+  try{$("#lampstage").scrollIntoView({block:"center",behavior:"smooth"})}catch(e){} /* keep the genie animation on screen: addMsg scrolls the chat log into view, which pushed the lamp stage off the top on phones */
   if(!want){try{$("#askbox").focus({preventScroll:true})}catch(e){}}
 }
 function setHint(t){if(t!==hintTxt){hintTxt=t;hintEl.textContent=t}}
