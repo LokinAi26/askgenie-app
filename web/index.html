@@ -976,11 +976,11 @@ vid.addEventListener("error",function(){vidBad=true});
 try{vid.load()}catch(e){}
 function primeVid(){
   if(primed||vidBad||RM)return; primed=true;
-  try{vid.muted=true;var p=vid.play();if(p&&p.then){p.then(function(){if(genieT<0){vid.pause();vid.currentTime=0}}).catch(function(){primed=false})}}catch(e){primed=false}
+  try{vid.muted=false;var p=vid.play();if(p&&p.then){p.then(function(){if(genieT<0){vid.pause();vid.currentTime=0}}).catch(function(){primed=false})}}catch(e){primed=false}
 }
 function resumeVid(){
   pendingVid=false;
-  try{vid.currentTime=0;var p=vid.play();if(p&&p.then){p.then(function(){useVid=true;genieT=Math.min(genieT,.6)}).catch(function(){})}}catch(e){}
+  try{vid.muted=false;vid.currentTime=0;var p=vid.play();if(p&&p.then){p.then(function(){useVid=true;genieT=Math.min(genieT,.6)}).catch(function(){})}}catch(e){}
 }
 /* ---------- volumetric smoke: GPU stable-fluids sim ---------- */
 var SM=(function(){
@@ -1117,7 +1117,7 @@ var GV=(function(){
     gl=c.getContext("webgl",{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false});
     if(!gl)return null;
     var vs="attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}";
-    var fs="precision mediump float;varying vec2 uv;uniform sampler2D tx;uniform float fade;void main(){vec3 v=texture2D(tx,uv).rgb;float l=dot(v,vec3(.3,.5,.2));float a=smoothstep(.02,.09,l);float e=smoothstep(0.,.07,uv.x)*smoothstep(1.,.93,uv.x)*smoothstep(0.,.04,uv.y);float b=smoothstep(1.,.74,uv.y);a*=e*b*fade;gl_FragColor=vec4(v*1.1*a,a);}";
+    var fs="precision mediump float;varying vec2 uv;uniform sampler2D tx;uniform float fade;void main(){vec3 v=texture2D(tx,uv).rgb;float l=dot(v,vec3(.3,.5,.2));float a=smoothstep(.035,.12,l);float e=smoothstep(0.,.07,uv.x)*smoothstep(1.,.93,uv.x)*smoothstep(0.,.04,uv.y);float b=smoothstep(1.,.74,uv.y);a*=e*b*fade;gl_FragColor=vec4(v*1.1*a,a);}";
     var sh=function(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error("sh");return o};
     var pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.bindAttribLocation(pr,0,"p");gl.linkProgram(pr);
     if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error("link");
@@ -1286,9 +1286,9 @@ function whoosh(){
 function shimmer(){if(RM||!W)return;var sp=spout();emit(sp.x,sp.y,18,1.6,true)}
 function summon(){
   if(genieT>=0){shimmer();return}
-  genieT=0;energy=0;burstDone=false;rubStop();whoosh();chime();
+  genieT=0;energy=0;burstDone=false;rubStop();
   useVid=!vidBad&&!RM&&!!GV;
-  if(useVid){try{vid.currentTime=0;var pr=vid.play();if(pr&&pr.catch)pr.catch(function(){useVid=false;pendingVid=true;vid.style.opacity=0})}catch(e){useVid=false}}
+  try{vid.muted=false;vid.currentTime=0;var pr=vid.play();if(pr&&pr.catch)pr.catch(function(){if(useVid){useVid=false;pendingVid=true;vid.style.opacity=0}})}catch(e){if(useVid)useVid=false}
   if(!RM&&W){var sp=spout();emit(sp.x,sp.y,60,2.2,true)}
   if(SR&&!want)startWake();
   if(want){wakeUI("awake");awakeUntil=Date.now()+20000}else wakeUI("typed");
